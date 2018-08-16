@@ -1,0 +1,650 @@
+<html>
+<head>
+    <title>俄罗斯方块</title>
+</head>
+<body style="margin: 0px;">
+<div id="container"></div>
+<script src="http://jquery.cuishifeng.cn/js/jquery-3.2.1_b5dbe7b.js"></script>
+<script>
+    var cellWidth = 20;
+    var cellHeight = 20;
+
+    function Cell(x, y) {
+        this.x = x;
+        this.y = y;
+        this.width = 20;
+        this.height = 20;
+        this.$cell = $("<div style='width:" + cellWidth + "px;height: " + cellHeight + "px;border:1px solid #0920bb;background:#2af049 ;top:" + this.y * this.height + "px;left:" + this.x * this.width + "px;position: absolute;'></div>");
+
+        this.interval;
+        this.init = function () {
+            $("#container").append(this.$cell);
+        };
+        this.moveRight = function () {
+            this.x += 1;
+            this.refresh();
+        };
+        this.moveLeft = function () {
+            this.x -= 1;
+            this.refresh();
+        };
+        this.moveDown = function () {
+            this.y += 1;
+            this.refresh();
+        };
+        this.moveUp = function () {
+            this.y -= 1;
+            this.refresh();
+        };
+        this.refresh = function () {
+            this.$cell.css({top: this.y * this.height + "px", left: this.x * this.width + "px"});
+        }
+        this.move = function (key) {
+            // console.info(key);
+            if (key == "ArrowLeft") {
+                this.moveLeft();
+            } else if (key == "ArrowRight") {
+                this.moveRight();
+            } else if (key == "ArrowDown") {
+                this.moveDown();
+            }
+        }
+        this.destroy = function () {
+            this.$cell.remove();
+        }
+        this.stop = function () {
+            clearInterval(this.interval);
+        }
+        // this.init();
+
+    }
+
+    function T(width, height) {
+        this.width = width;
+        this.height = height;
+        this.status = "moving";
+
+        this.$T = [];
+        // this.pos = [{x: 1, y: 1}, {x: 0, y: 0}, {x: 2, y: 0}, {x: 1, y: -1},];
+        // this.init = function () {
+        //     this.$T.push(new Cell(1, 0));
+        //     for (var i = 4; i > 1; i--) {
+        //         var index = Math.floor(Math.random() * i);
+        //         this.$T.push(new Cell(this.pos[index].x, this.pos[index].y));
+        //         this.pos.splice(index, 1);
+        //     }
+        // }
+
+        this.centerPos = Math.floor(width/2);
+        this.pos = [[{x: 0, y: 0}, {x: 1, y: 0}, {x: 2, y: 0}, {x: 1, y: -1}],//
+            [{x: 1, y: -2}, {x: 1, y: -1}, {x: 1, y: 0}, {x: 2, y: -1}],
+            [{x: 2, y: 0}, {x: 1, y: 0}, {x: 0, y: 0}, {x: 1, y: 1}],//T
+            [{x: 1, y: 0}, {x: 1, y: -1}, {x: 1, y: -2}, {x: 0, y: -1}]];
+        this.init = function () {
+            var index = Math.floor(Math.random() * this.pos.length);
+            var p = this.pos[index];
+            for (var i = 0; i < p.length; i++) {
+                var cell = new Cell(p[i].x+this.centerPos, p[i].y);
+                cell.init();
+                this.$T.push(cell);
+            }
+        }
+        this.move = function (key) {
+            if (this.status == "stop") {
+                return;
+            }
+            var bool = this.checkMove(key);
+            // console.info(bool);
+            if(!bool){
+                return;
+            }
+            if (key == "ArrowLeft" && this.status == "moving") {
+                this.moveLeft();
+            } else if (key == "ArrowRight" && this.status == "moving") {
+                this.moveRight();
+            } else if (key == "ArrowDown" && this.status == "moving") {
+                this.moveDown();
+            } else if (key == " " && this.status == "moving") {
+                this.change();
+            } else if (key == "Enter") {
+                if (this.status == "pause") {
+                    this.status = "moving";
+                } else {
+                    this.status = "pause";
+                }
+            }
+        }
+        this.moveRight = function () {
+            // for (let i = 0; i < 4; i++) {
+            //     if (this.$T[i].x == this.width - 1) {
+            //         return;
+            //     } else {
+            //         var cells = container.cells;
+            //         for (let j = 0; j < cells.length; j++) {
+            //             for (let k = 0; k < 4; k++) {
+            //                 if (cells[j].x == (this.$T[i].x + 1) && cells[j].y == this.$T[i].y) {
+            //                     return;
+            //                 }
+            //             }
+            //         }
+            //     }
+            // }
+            for (let i = 0; i < 4; i++) {
+                this.$T[i].moveRight();
+            }
+        };
+        this.moveLeft = function () {
+            // for (let i = 0; i < 4; i++) {
+            //     if (this.$T[i].x == 0) {
+            //         return;
+            //     } else {
+            //         var cells = container.cells;
+            //         for (let j = 0; j < cells.length; j++) {
+            //             if (cells[j].x == (this.$T[i].x - 1) && cells[j].y == this.$T[i].y) {
+            //                 return;
+            //             }
+            //         }
+            //     }
+            // }
+            for (let i = 0; i < 4; i++) {
+                this.$T[i].moveLeft();
+            }
+
+        };
+        this.moveDown = function () {
+            var stop = false;
+            for (let i = 0; i < 4; i++) {
+                if (this.$T[i].y == this.height - 1) {
+                    stop = true;
+                } else {
+                    var cells = container.cells;
+                    for (let j = 0; j < cells.length; j++) {
+                        if (cells[j].x == this.$T[i].x && cells[j].y == (this.$T[i].y + 1)) {
+                            stop = true;
+                        }
+                    }
+                }
+            }
+            if (stop) {
+                this.stop();
+            } else {
+                for (let i = 0; i < 4; i++) {
+                    this.$T[i].moveDown();
+                }
+
+            }
+        }
+        this.stop = function () {
+            this.status = "stop";
+        }
+        this.change = function () {
+            // console.info(this.$T);
+            if (this.$T[1].x < this.$T[0].x) {//T
+                this.$T[0].moveLeft();
+                this.$T[0].moveDown();
+                this.$T[2].moveRight();
+                this.$T[2].moveUp();
+                this.$T[3].moveLeft();
+                this.$T[3].moveUp();
+            } else if (this.$T[1].x > this.$T[0].x) {
+                this.$T[0].moveRight();
+                this.$T[0].moveUp();
+                this.$T[2].moveDown();
+                this.$T[2].moveLeft();
+                this.$T[3].moveDown();
+                this.$T[3].moveRight();
+            } else if (this.$T[1].y > this.$T[0].y) {//卜
+                // if (this.$T[1].x == 0) {
+                //     return;
+                // }
+                // var cells = container.cells;
+                // for (let j = 0; j < cells.length; j++) {
+                //     if ((cells[j].y == this.$T[1].y && cells[j].x == (this.$T[1].x - 1))) {
+                //         return;
+                //     }
+                // }
+
+                this.$T[0].moveRight();
+                this.$T[0].moveDown();
+                this.$T[2].moveLeft();
+                this.$T[2].moveUp();
+                this.$T[3].moveLeft();
+                this.$T[3].moveDown();
+            } else if (this.$T[1].y < this.$T[0].y) {
+                // if (this.$T[1].x == this.width - 1) {
+                //     return;
+                // }
+                // var cells = container.cells;
+                // for (let j = 0; j < cells.length; j++) {
+                //     if ((cells[j].y == this.$T[1].y && cells[j].x == (this.$T[1].x + 1))) {
+                //         return;
+                //     }
+                // }
+
+                this.$T[0].moveLeft();
+                this.$T[0].moveUp();
+                this.$T[2].moveRight();
+                this.$T[2].moveDown();
+                this.$T[3].moveRight();
+                this.$T[3].moveUp();
+            }else{
+                // console.info(this.$T)
+                alert("出错了");
+            }
+        }
+        this.checkMove = function (key) {
+            var ectype = clone(this);
+            for (let i = 0; i < ectype.$T.length; i++) {
+                var cell = ectype.$T[i];
+                ectype.$T[i]= new Cell(cell.x,cell.y);
+            }
+            // console.info(this==ectype);
+
+            if (key == "ArrowLeft" && this.status == "moving") {
+                ectype.moveLeft();
+            } else if (key == "ArrowRight" && this.status == "moving") {
+                ectype.moveRight();
+            } else if (key == "ArrowDown" && this.status == "moving") {
+                // ectype.moveDown();
+            } else if (key == " " && this.status == "moving") {
+                ectype.change();
+            }
+            // ectype.change();
+            var cells = container.cells;
+
+            for (let i = 0; i < ectype.$T.length; i++) {
+                var cell = ectype.$T[i];
+                if (cell.x < 0 || cell.x >= this.width || cell.y >= this.height) {
+                    return false;
+                }
+                for (let j = 0; j < cells.length; j++) {
+                    if (cell.x == cells[j].x && cell.y == cells[j].y) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+
+        }
+        // this.init();
+    }
+
+    function O(width, height) {
+        T.call(this, width, height);
+        this.pos = [[{x: 0, y: 0}, {x: 1, y: 0}, {x: 0, y: -1}, {x: 1, y: -1}]];
+        // this.init = function () {
+        //     this.$T.push(new Cell(0, 0), new Cell(1, 0), new Cell(0, -1), new Cell(1, -1));
+        // }
+        this.change = function () {
+
+        }
+    }
+
+    function clone(obj) {
+        let temp = [];
+        if (obj instanceof Array) {
+            temp = obj.concat();
+            // for (var i=0;i<obj.length;i++) {
+            //     console.info(obj[i]);
+            //     let val = obj[i];
+            //     temp[i] =  clone(val); //
+            // }
+            // console.info(temp);
+        } else if (obj instanceof Function) {
+            //函数是共享的是无所谓的，js也没有什么办法可以在定义后再修改函数内容
+            temp = obj;
+            // console.info(temp);
+        } else {
+            temp = new Object();
+            for (let item in obj) {
+                let val = obj[item];
+                temp[item] = typeof val == 'object' ? clone(val) : val; //这里也没有判断是否为函数，因为对于函数，我们将它和一般值一样处理
+            }
+            // console.info(temp);
+        }
+        return temp;
+    }
+
+    // O.prototype = Object.create(T.prototype);
+    // O.prototype.constructor = O;
+    function Long(width, height) {
+        // this.pos = [{x: 0, y: -1}, {x: 0, y: 0}, {x: 2, y: 0}, {x: 1, y: -1}];
+        T.call(this, width, height);
+        this.pos = [[{x: 0, y: 0}, {x: 1, y: 0}, {x: 2, y: 0}, {x: 3, y: 0}],
+            [{x: 2, y: -2}, {x: 2, y: -1}, {x: 2, y: 0}, {x: 2, y: 1}]];
+        // this.init = function () {
+        //     var index = Math.floor(Math.random() * this.pos.length);
+        //     var p = this.pos[index];
+        //     for (var i = 0; i < p.length; i++) {
+        //         this.$T.push(new Cell(p[i].x, p[i].y));
+        //     }
+        // }
+        this.change = function () {
+            if (this.$T[1].x == this.$T[0].x) {//|
+                if (this.$T[1].x == this.width - 1 || this.$T[1].x == 0 || this.$T[1].x == 1) {
+                    return;
+                }
+                var cells = container.cells;
+                for (let j = 0; j < cells.length; j++) {
+                    if (cells[j].y == this.$T[1].y && (cells[j].x == (this.$T[1].x + 1) || cells[j].x == (this.$T[1].x - 2) || cells[j].x == (this.$T[1].x - 1))) {
+                        return;
+                    }
+                }
+
+
+                this.$T[0].moveLeft();
+                this.$T[0].moveLeft();
+                this.$T[0].moveDown();
+                this.$T[0].moveDown();
+                this.$T[1].moveLeft();
+                this.$T[1].moveDown();
+                this.$T[3].moveRight();
+                this.$T[3].moveUp();
+
+            } else {//-
+                if (this.$T[1].y == this.height - 2 || this.$T[1].y == this.height - 1) {
+                    return;
+                }
+                var cells = container.cells;
+                for (let j = 0; j < cells.length; j++) {
+                    if (cells[j].x == this.$T[1].x && (cells[j].y == (this.$T[1].y + 1) || cells[j].y == (this.$T[1].y + 2))) {
+                        return;
+                    }
+                }
+                this.$T[0].moveRight();
+                this.$T[0].moveRight();
+                this.$T[0].moveUp();
+                this.$T[0].moveUp();
+                this.$T[1].moveRight();
+                this.$T[1].moveUp();
+                this.$T[3].moveLeft();
+                this.$T[3].moveDown();
+
+            }
+        }
+    }
+
+    function J(width, height) {
+        T.call(this, width, height);
+        this.pos = [[{x: 0, y: -1}, {x: 0, y: 0}, {x: 1, y: 0}, {x: 2, y: 0}],
+            [{x: 1, y: -2}, {x: 0, y: -2}, {x: 0, y: -1}, {x: 0, y: 0}],
+            [{x: 2, y: 0}, {x: 2, y: -1}, {x: 1, y: -1}, {x: 0, y: -1}],
+            [{x: 1, y: 0}, {x: 2, y: 0}, {x: 2, y: -1}, {x: 2, y: -2}]];//J
+        this.change = function () {
+
+            if (this.$T[0].x == this.$T[1].x && this.$T[0].y < this.$T[1].y) {
+
+                this.$T[0].moveUp();
+                this.$T[0].moveRight();
+                this.$T[1].moveUp();
+                this.$T[1].moveUp();
+                this.$T[2].moveUp();
+                this.$T[2].moveLeft();
+                this.$T[3].moveLeft();
+                this.$T[3].moveLeft();
+            } else if (this.$T[0].x > this.$T[1].x && this.$T[0].y == this.$T[1].y) {
+                // if (this.$T[0].x == this.width - 1) {
+                //     return;
+                // }
+                // var cells = container.cells;
+                // for (let j = 0; j < cells.length; j++) {
+                //     if (cells[j].y == this.$T[1].y && (cells[j].x == (this.$T[1].x + 1) || cells[j].x == (this.$T[1].x - 2) || cells[j].x == (this.$T[1].x - 1))) {
+                //         return;
+                //     }
+                // }
+
+
+                this.$T[0].moveDown();
+                this.$T[0].moveRight();
+                this.$T[1].moveRight();
+                this.$T[1].moveRight();
+                this.$T[2].moveUp();
+                this.$T[2].moveRight();
+                this.$T[3].moveUp();
+                this.$T[3].moveUp();
+            } else if (this.$T[0].x == this.$T[1].x && this.$T[0].y > this.$T[1].y) {
+                this.$T[0].moveDown();
+                this.$T[0].moveLeft();
+                this.$T[1].moveDown();
+                this.$T[1].moveDown();
+                this.$T[2].moveDown();
+                this.$T[2].moveRight();
+                this.$T[3].moveRight();
+                this.$T[3].moveRight();
+            } else if (this.$T[0].x < this.$T[1].x && this.$T[0].y == this.$T[1].y) {//J
+                // if (this.$T[0].x == 0) {
+                //     return;
+                // }
+                // var cells = container.cells;
+                // for (let j = 0; j < cells.length; j++) {
+                //     if (cells[j].x == (this.$T[0].x - 1)) {
+                //         return;
+                //     }
+                // }
+
+                this.$T[0].moveUp();
+                this.$T[0].moveLeft();
+                this.$T[1].moveLeft();
+                this.$T[1].moveLeft();
+                this.$T[2].moveDown();
+                this.$T[2].moveLeft();
+                this.$T[3].moveDown();
+                this.$T[3].moveDown();
+            }
+
+        }
+    }
+
+    function L(width, height) {
+        T.call(this, width, height);
+        this.pos = [[{x: 2, y: -1}, {x: 2, y: 0}, {x: 1, y: 0}, {x: 0, y: 0}],
+            [{x: 1, y: 0}, {x: 0, y: 0}, {x: 0, y: -1}, {x: 0, y: -2}],
+            [{x: 0, y: 0}, {x: 0, y: -1}, {x: 1, y: -1}, {x: 2, y: -1}],
+            [{x: 1, y: -2}, {x: 2, y: -2}, {x: 2, y: -1}, {x: 2, y: 0}]];
+        this.change = function () {
+            if (this.$T[0].x == this.$T[1].x && this.$T[0].y < this.$T[1].y) {
+                this.$T[0].moveDown();
+                this.$T[0].moveLeft();
+                this.$T[1].moveLeft();
+                this.$T[1].moveLeft();
+                this.$T[2].moveUp();
+                this.$T[2].moveLeft();
+                this.$T[3].moveUp();
+                this.$T[3].moveUp();
+            } else if (this.$T[0].x > this.$T[1].x && this.$T[0].y == this.$T[1].y) {
+                this.$T[0].moveUp();
+                this.$T[0].moveLeft();
+                this.$T[1].moveUp();
+                this.$T[1].moveUp();
+                this.$T[2].moveUp();
+                this.$T[2].moveRight();
+                this.$T[3].moveRight();
+                this.$T[3].moveRight();
+            } else if (this.$T[0].x == this.$T[1].x && this.$T[0].y > this.$T[1].y) {
+                this.$T[0].moveUp();
+                this.$T[0].moveRight();
+                this.$T[1].moveRight();
+                this.$T[1].moveRight();
+                this.$T[2].moveDown();
+                this.$T[2].moveRight();
+                this.$T[3].moveDown();
+                this.$T[3].moveDown();
+            } else if (this.$T[0].x < this.$T[1].x && this.$T[0].y == this.$T[1].y) {
+                this.$T[0].moveDown();
+                this.$T[0].moveRight();
+                this.$T[1].moveDown();
+                this.$T[1].moveDown();
+                this.$T[2].moveDown();
+                this.$T[2].moveLeft();
+                this.$T[3].moveLeft();
+                this.$T[3].moveLeft();
+            }
+
+        }
+    }
+
+    function S(width, height) {
+        Long.call(this, width, height);
+        this.pos = [[{x: 0, y: -2}, {x: 0, y: -1}, {x: 1, y: -1}, {x: 1, y: 0}],
+            [{x: 2, y: -1}, {x: 1, y: -1}, {x: 1, y: 0}, {x: 0, y: 0}]];
+        this.change = function () {
+            if (this.$T[0].x == this.$T[1].x) {
+                this.$T[0].moveDown();
+                this.$T[0].moveRight();
+                this.$T[2].moveDown();
+                this.$T[2].moveLeft();
+                this.$T[3].moveLeft();
+                this.$T[3].moveLeft();
+            } else if (this.$T[0].y == this.$T[1].y) {
+                this.$T[0].moveUp();
+                this.$T[0].moveLeft();
+                this.$T[2].moveUp();
+                this.$T[2].moveRight();
+                this.$T[3].moveRight();
+                this.$T[3].moveRight();
+            }
+
+        }
+    }
+
+    function Z(width, height) {
+        Long.call(this, width, height);
+        this.pos = [[{x: 1, y: -2}, {x: 1, y: -1}, {x: 0, y: -1}, {x: 0, y: 0}],
+            [{x: 0, y: -1}, {x: 1, y: -1}, {x: 1, y: 0}, {x: 2, y: 0}]];
+        this.change = function () {
+            if (this.$T[0].x == this.$T[1].x) {
+                this.$T[0].moveDown();
+                this.$T[0].moveLeft();
+                this.$T[2].moveDown();
+                this.$T[2].moveRight();
+                this.$T[3].moveRight();
+                this.$T[3].moveRight();
+            } else if (this.$T[0].y == this.$T[1].y) {
+                this.$T[0].moveUp();
+                this.$T[0].moveRight();
+                this.$T[2].moveUp();
+                this.$T[2].moveLeft();
+                this.$T[3].moveLeft();
+                this.$T[3].moveLeft();
+            }
+
+        }
+    }
+
+    function Container() {
+        this.width = 20;
+        this.height = 30;
+        this.objs = new Array();
+        this.cells = [];
+        this.score = 0;
+        var This = this;
+        $("#container").css({
+            "width": this.width * cellWidth + "px",
+            "height": this.height * cellHeight + "px",
+            "border": "2px solid #351234"
+        });
+        this.$score = $("<h1 id='score'>"+this.score+"</h1>");
+        this.$desc = $("<p>Enter 暂停</p><p>space 变形</p><p>方向键移动</p>")
+        this.$desc.css({
+            "top": this.width * cellWidth + "px",
+            "left": this.height * cellHeight + "px",
+            "position":"relative",
+            "color":"red"
+        });
+        this.$score.css({
+            "top": this.width * cellWidth + "px",
+            "left": this.height * cellHeight + "px",
+            "position":"relative",
+            "color":"red"
+        });
+        $("#container").append(this.$score ).append(this.$desc);
+        this.createObj = function () {
+            var classes = [T, O, Long, L, J, S, Z];
+            // var classes = [J];
+            var index = Math.floor(Math.random() * classes.length);
+            var clas = classes[index];
+            return new clas(this.width, this.height);
+        }
+        // var cell = new T(this.width, this.height);
+        var cell = This.createObj();
+        cell.init();
+        this.interval = setInterval(function () {
+            This.start()
+        }, 1000);
+
+        this.start = function () {
+            if (cell.status == "moving") {
+                cell.moveDown();
+            } else if (cell.status == "pause") {
+                // cell.moveDown();
+            } else {
+                var objs = This.objs;
+                objs.push(cell);
+                // for (let i = 0; i < cell.$T.length; i++) {
+                //     this.room[cell.$T.y]+=cell.$T.x;
+                // }
+
+                var c = cell.$T;
+                $.merge(This.cells, c);
+                for (let i = 0; i < This.height; i++) {
+                    var cells = [];
+                    var index = [];
+                    for (let j = 0; j < This.cells.length; j++) {
+                        if(This.cells[j].y==-1){
+                            clearInterval(This.interval);
+                            alert("GAME OVER");
+                            return
+                        }
+                        if (This.cells[j].y == i) {
+                            cells.push(This.cells[j]);
+                            index.push(j);
+                            if (cells.length == This.width) {
+                                This.destroyCells(cells, index);
+                                This.refresh(i);
+                            }
+                        }
+                    }
+                }
+
+                // cell = new O(This.width, This.height);
+                cell = This.createObj();
+                cell.init();
+            }
+        }
+
+        this.destroyCells = function (cells, index) {
+            var This = this;
+            // for (let k = 0; k < cells.length; k++) {
+            //     cells[k].destroy();
+            //     this.cells.splice()
+            // }
+            $.uniqueSort(index);
+            var sco = index.length;
+            for (let i = index.length - 1; i >= 0; i--) {
+                var idx = index[i];
+                this.cells[idx].destroy();
+                this.cells.splice(idx, 1);
+            }
+            this.score+=sco
+            this.$score.html(this.score);
+        }
+        this.refresh = function (y) {
+            for (let i = 0; i < this.cells.length; i++) {
+                if (this.cells[i].y < y) {
+                    this.cells[i].moveDown();
+                }
+            }
+        }
+
+
+        $("body").on("keypress", function (e) {
+            cell.move(e.key);
+
+        });
+    };
+
+    var container = new Container();
+
+</script>
+</body>
+</html>
